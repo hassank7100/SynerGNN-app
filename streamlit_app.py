@@ -1,81 +1,113 @@
+# streamlit_app.py
 import streamlit as st
-import itertools
-import torch
-import numpy as np
-from load_artifacts import (
-    load_prediction_artifacts,   # <-- your helper from earlier
-    predict_synergy              # <-- your helper from earlier
-)
+import torch, itertools, json, pandas as pd
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv
 
-# ---------- Load model & artifacts ----------
-MODEL_PATH = "gnn_synergy_model.pth"
-model, predictor, smiles_map, idx_map = load_prediction_artifacts(MODEL_PATH)
+CHECKPOINT = "gnn_synergy_model.pth"
+METADATA   = "drugs.json"
+TOP_N      = 10   # how many combos to list in “rank my inventory”
 
-# You must also load data.x and train_data.edge_index exactly as in training
-# For deployment, pickle or torch.save them into a file and load here:
-import pickle, os
-with open("data_artifacts.pkl", "rb") as fh:
-    data_x, train_edge_index, drug_names = pickle.load(fh)
+# ──────────────────────────────────────────────────────────
+# 1.  Load model + predictor + drug metadata (with caching)
+# ──────────────────────────────────────────────────────────
+@st.cache_resource(show_spinner="Loading GNN…")
+def load_model():
+    ckpt = torch.load(CHECKPOINT, map_location="cpu")
+    in_dim  = ckpt["feature_dim"]
+    hidden  = 64
+    out_dim = 32
 
-# ---------- Streamlit UI ----------
-st.set_page_config(page_title="SynerGNN – Antibiotic Synergy", layout="centered")
-st.title("🦠 SynerGNN – Predicting Synergistic Antibiotic Pairs")
+    class GCNEncoder(torch.nn.Module):
+        def __init__(self, in_channels, hidden_channels, out_channels):
+            super().__init__()
+            self.conv1 = GCNConv(in_channels, hidden_channels)
+            self.conv2 = GCNConv(hidden_channels, out_channels)
+        def forward(self, x, edge_index):
+            x = F.relu(self.conv1(x, edge_index))
+            return self.conv2(x, edge_index)
 
-st.markdown(
-"""
-**How it works**  
-*Select two drugs manually* **or** *pick the inventory you have* and let the model suggest
-the best combinations (highest predicted probability of synergy).  
-The current model was trained on **28 antibiotics** and 38 real interactions.
-"""
-)
+    class LinkPred(torch.nn.Module):
+        def forward(self, z, edges):
+            u, v = z[edges[0]], z[edges[1]]
+            return (u * v).sum(dim=1)
 
-# ----- Manual Pair Prediction -----
-st.header("1  Manual prediction")
-col1, col2 = st.columns(2)
+    encoder = GCNEncoder(in_dim, hidden, out_dim)
+    decoder = LinkPred()
+    encoder.load_state_dict(ckpt["model_state_dict"])
+    decoder.load_state_dict(ckpt["predictor_state_dict"])
+    encoder.eval(); decoder.eval()
 
-drug_a = col1.selectbox("Drug 1", list(drug_names))
-drug_b = col2.selectbox("Drug 2", list(drug_names), index=1)
+    # fake graph to compute embeddings once (no gradients needed)
+    num_nodes = len(ckpt["idx_map"])
+    dummy_x   = torch.eye(num_nodes, in_dim) * 0  # placeholder
+    dummy_edge = torch.empty((2, 0), dtype=torch.long)
 
-if st.button("Predict this pair"):
-    if drug_a == drug_b:
-        st.warning("Select two *different* drugs.")
-    else:
-        idx1, idx2 = drug_names.index(drug_a), drug_names.index(drug_b)
-        prob = predict_synergy(model, predictor, data_x, train_edge_index,
-                               idx1, idx2)
-        st.write(f"**Predicted synergy probability:** {prob:.2%}")
-        st.success("Synergistic ✅" if prob > 0.5 else "Not synergistic ❌")
+    with torch.no_grad():
+        z = encoder(dummy_x, dummy_edge)
 
-st.divider()
+    return z, decoder, ckpt["idx_map"]
 
-# ----- Inventory-Based Ranking -----
-st.header("2  Top-ranked combinations from your inventory")
+@st.cache_resource
+def load_drug_meta():
+    with open(METADATA) as fp:
+        return {int(k): v for k, v in json.load(fp).items()}
 
-inventory = st.multiselect(
-    "Select the antibiotics you have in stock",
-    drug_names,            # full list
-    default=["Colistin", "Meropenem", "Tigecycline"]
-)
+embeddings, predictor, idx2smiles = load_model()
+drug_meta = load_drug_meta()
+num_drugs = len(drug_meta)
 
-top_n = st.slider("Number of suggestions (N)", 1, 10, 5, 1)
+# ──────────────────────────────────────────────────────────
+# 2.  Helper to compute probability for any pair (i,j)
+# ──────────────────────────────────────────────────────────
+@torch.no_grad()
+def predict_pair(i, j):
+    edge = torch.tensor([[i], [j]])
+    logit = predictor(embeddings, edge)[0]
+    prob  = torch.sigmoid(logit).item()
+    return prob
 
-if st.button("Show best combinations"):
+# ──────────────────────────────────────────────────────────
+# 3.  Streamlit UI
+# ──────────────────────────────────────────────────────────
+st.title("SynerGNN – predict antibiotic synergy for *Klebsiella pneumoniae*")
+
+tab1, tab2 = st.tabs(["🔍 Check one pair", "📋 Rank my inventory"])
+
+# ---- Pair checker
+with tab1:
+    st.subheader("Check a single combination")
+    colA, colB = st.columns(2)
+    choiceA = colA.selectbox("Drug A", sorted(drug_meta))
+    choiceB = colB.selectbox("Drug B", sorted(drug_meta), index=1)
+    if st.button("Predict synergy →", key="pair-btn"):
+        prob = predict_pair(choiceA, choiceB)
+        nameA = drug_meta[choiceA]["name"]
+        nameB = drug_meta[choiceB]["name"]
+        label = "Synergistic ✅" if prob > 0.5 else "Not synergistic ❌"
+        st.metric(f"{nameA} + {nameB}", f"{prob:.3f}", label)
+
+# ---- Inventory ranker
+with tab2:
+    st.subheader("Rank the best pairs among selected antibiotics")
+    inventory = st.multiselect(
+        "Select antibiotics you have available",
+        options=sorted(drug_meta),
+        format_func=lambda i: drug_meta[i]["name"],
+    )
     if len(inventory) < 2:
-        st.warning("Pick at least two drugs.")
+        st.info("Select at least two drugs.")
     else:
-        # Generate all unordered pairs
-        pairs = list(itertools.combinations(inventory, 2))
-        results = []
-        for d1, d2 in pairs:
-            i1, i2 = drug_names.index(d1), drug_names.index(d2)
-            prob = predict_synergy(model, predictor, data_x, train_edge_index,
-                                   i1, i2)
-            results.append((d1, d2, prob))
-        # Sort high → low
-        results.sort(key=lambda x: x[2], reverse=True)
-        st.subheader(f"Top {top_n} predicted synergistic pairs")
-        for d1, d2, p in results[:top_n]:
-            st.write(f"**{d1} + {d2}** → {p:.2%}")
+        if st.button(f"Rank top {TOP_N} pairs →", key="rank-btn"):
+            combos  = list(itertools.combinations(inventory, 2))
+            probs   = [predict_pair(i, j) for i, j in combos]
+            rows    = [{
+                "Drug A": drug_meta[i]["name"],
+                "Drug B": drug_meta[j]["name"],
+                "Predicted Synergy": round(p, 3)
+            } for (i, j), p in zip(combos, probs)]
+            df = pd.DataFrame(rows).sort_values("Predicted Synergy", ascending=False)
+            st.write(f"### Top {TOP_N} predicted synergistic pairs")
+            st.dataframe(df.head(TOP_N), use_container_width=True)
 
-st.caption("Model trained on limited, imbalanced data – probabilities are exploratory only.")
+st.caption("Model trained on real CRKP synergy data • probabilities >0.5 suggest likely synergy")
