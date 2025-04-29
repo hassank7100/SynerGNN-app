@@ -28,7 +28,14 @@ def load_model():
 
     return z, LinkPred(), drug_meta
 
+@st.cache_resource
+def load_drug_meta():
+    with open(METADATA) as fp:
+        return {int(k): v for k, v in json.load(fp).items()}
 
+embeddings, predictor, idx2smiles = load_model()
+drug_meta = load_drug_meta()
+num_drugs = len(drug_meta)
 
     encoder = GCNEncoder(in_dim, hidden, out_dim)
     decoder = LinkPred()
