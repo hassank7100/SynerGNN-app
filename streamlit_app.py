@@ -70,22 +70,28 @@ st.title("SynerGNN – predict antibiotic synergy for *Klebsiella pneumoniae*")
 
 tab1, tab2 = st.tabs(["🔍 Check one pair", "📋 Rank my inventory"])
 
-# ---- Pair checker
+# ----- Pair checker UI -----
 with tab1:
     st.subheader("Check a single combination")
-    colA, colB = st.columns(2)
-    drug_options = {i: drug_meta[i]["name"] for i in sorted(drug_meta)}
-    
-    choiceA_name = colA.selectbox(
-        "Select Drug A", list(drug_options.values()), index=0
+
+    # make a list of indices once
+    all_indices = sorted(drug_meta)        # e.g. [0,1,2, …]
+
+    # Drop-down for Drug A
+    choiceA = st.selectbox(
+        "Drug A",
+        options=all_indices,
+        format_func=lambda i: f"{drug_meta[i]['name']}  (#{i})"
     )
-    choiceB_name = colB.selectbox(
-        "Select Drug B", list(drug_options.values()), index=1
+
+    # Drop-down for Drug B (default to a different item)
+    choiceB = st.selectbox(
+        "Drug B",
+        options=all_indices,
+        index=1 if len(all_indices) > 1 else 0,
+        format_func=lambda i: f"{drug_meta[i]['name']}  (#{i})"
     )
-    
-    # Find back the index corresponding to the selected name
-    choiceA = [i for i, name in drug_options.items() if name == choiceA_name][0]
-    choiceB = [i for i, name in drug_options.items() if name == choiceB_name][0]
+
     if st.button("Predict synergy →", key="pair-btn"):
         prob = predict_pair(choiceA, choiceB)
         nameA = drug_meta[choiceA]["name"]
@@ -96,13 +102,11 @@ with tab1:
 # ---- Inventory ranker
 with tab2:
     st.subheader("Rank the best pairs among selected antibiotics")
-    inventory_names = st.multiselect(
+    inventory = st.multiselect(
         "Select antibiotics you have available",
-        options=list(drug_options.values())
+        options=all_indices,
+        format_func=lambda i: drug_meta[i]["name"],
     )
-
-    # Map back from names to indices
-    inventory = [i for i, name in drug_options.items() if name in inventory_names]
 
     if len(inventory) < 2:
         st.info("Select at least two drugs.")
