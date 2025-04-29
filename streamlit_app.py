@@ -1,4 +1,5 @@
 # streamlit_app.py
+import json
 import streamlit as st
 import torch, itertools, json, pandas as pd
 import torch.nn.functional as F
@@ -12,14 +13,20 @@ TOP_N      = 10   # how many combos to list in “rank my inventory”
 # 1.  Load model + predictor + drug metadata (with caching)
 # ──────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner="Loading GNN…")
+@st.cache_resource
 def load_model():
-    z = torch.load("node_embeddings.pt")          # ← embeddings ready
-    # you still need the predictor ONLY for new retrains; not needed for dot-product
+    z = torch.load("node_embeddings.pt", map_location="cpu")
+
+    # ➊ add these two lines
+    with open("drugs.json") as fp:              # ← your mapping file
+        idx2smiles = json.load(fp)              # idx    →  {"name":…, "smiles":…}
+
     class LinkPred(torch.nn.Module):
         def forward(self, z, edges):
             u, v = z[edges[0]], z[edges[1]]
             return (u * v).sum(dim=1)
-    return z, LinkPred(), idx2smiles
+
+    return z, LinkPred(), idx2smiles           # now defined
 
 
     encoder = GCNEncoder(in_dim, hidden, out_dim)
