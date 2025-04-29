@@ -29,8 +29,7 @@ def load_model():
     return z, LinkPred(), drug_meta
 
 
-embeddings, predictor, idx2smiles = load_model()
-drug_meta = load_drug_meta()
+embeddings, predictor, drug_meta = load_model()
 num_drugs = len(drug_meta)
 
 # ──────────────────────────────────────────────────────────
