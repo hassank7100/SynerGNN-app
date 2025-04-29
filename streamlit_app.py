@@ -74,8 +74,18 @@ tab1, tab2 = st.tabs(["🔍 Check one pair", "📋 Rank my inventory"])
 with tab1:
     st.subheader("Check a single combination")
     colA, colB = st.columns(2)
-    choiceA = colA.selectbox("Drug A", sorted(drug_meta))
-    choiceB = colB.selectbox("Drug B", sorted(drug_meta), index=1)
+    drug_options = {i: drug_meta[i]["name"] for i in sorted(drug_meta)}
+    
+    choiceA_name = colA.selectbox(
+        "Select Drug A", list(drug_options.values()), index=0
+    )
+    choiceB_name = colB.selectbox(
+        "Select Drug B", list(drug_options.values()), index=1
+    )
+    
+    # Find back the index corresponding to the selected name
+    choiceA = [i for i, name in drug_options.items() if name == choiceA_name][0]
+    choiceB = [i for i, name in drug_options.items() if name == choiceB_name][0]
     if st.button("Predict synergy →", key="pair-btn"):
         prob = predict_pair(choiceA, choiceB)
         nameA = drug_meta[choiceA]["name"]
@@ -86,11 +96,14 @@ with tab1:
 # ---- Inventory ranker
 with tab2:
     st.subheader("Rank the best pairs among selected antibiotics")
-    inventory = st.multiselect(
+    inventory_names = st.multiselect(
         "Select antibiotics you have available",
-        options=sorted(drug_meta),
-        format_func=lambda i: drug_meta[i]["name"],
+        options=list(drug_options.values())
     )
+
+    # Map back from names to indices
+    inventory = [i for i, name in drug_options.items() if name in inventory_names]
+
     if len(inventory) < 2:
         st.info("Select at least two drugs.")
     else:
