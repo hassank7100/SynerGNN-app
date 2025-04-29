@@ -46,15 +46,6 @@ def load_model():
 
     return z, decoder, ckpt["idx_map"]
 
-@st.cache_resource
-def load_drug_meta():
-    with open(METADATA) as fp:
-        return {int(k): v for k, v in json.load(fp).items()}
-
-embeddings, predictor, idx2smiles = load_model()
-drug_meta = load_drug_meta()
-num_drugs = len(drug_meta)
-
 # ──────────────────────────────────────────────────────────
 # 2.  Helper to compute probability for any pair (i,j)
 # ──────────────────────────────────────────────────────────
@@ -95,19 +86,19 @@ with tab1:
     )
 
     if st.button("Predict synergy →", key="pair-btn"):
-    prob = predict_pair(choiceA, choiceB)
-    nameA = drug_meta[choiceA]["name"]
-    nameB = drug_meta[choiceB]["name"]
-
-    delta = prob - 0.5          # how far from neutral 0.50
-
-    st.metric(
-        label=f"{nameA} + {nameB}",
-        value=f"{prob:.3f}",
-        delta=f"{delta:+.3f}",
-        help="> 0.5 suggests likely synergy"
-    )
-st.caption("Prediction: " + ("Synergistic ✅" if prob > 0.5 else "Not synergistic ❌"))
+        prob = predict_pair(choiceA, choiceB)
+        nameA = drug_meta[choiceA]["name"]
+        nameB = drug_meta[choiceB]["name"]
+    
+        delta = prob - 0.5          # how far from neutral 0.50
+    
+        st.metric(
+            label=f"{nameA} + {nameB}",
+            value=f"{prob:.3f}",
+            delta=f"{delta:+.3f}",
+            help="> 0.5 suggests likely synergy"
+        )
+        st.caption("Prediction: " + ("Synergistic ✅" if prob > 0.5 else "Not synergistic ❌"))
 
 
 # ---- Inventory ranker
