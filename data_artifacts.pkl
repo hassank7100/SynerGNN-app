@@ -1,4 +1,0 @@
-# one-time save after training
-import pickle, torch
-with open("data_artifacts.pkl", "wb") as fh:
-    pickle.dump((data.x.cpu(), train_edge_index.cpu(), list(drug_map.keys())), fh)
