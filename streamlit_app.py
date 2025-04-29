@@ -109,7 +109,6 @@ with tab2:
                 "Predicted Synergy": round(p, 3)
             } for (i, j), p in zip(combos, probs)]
             df = pd.DataFrame(rows).sort_values("Predicted Synergy", ascending=False)
-            st.write(f"### Top {TOP_N} predicted synergistic pairs")
             df_sorted = pd.DataFrame(rows).sort_values(
                 "Predicted Synergy", ascending=False, ignore_index=True
             )
