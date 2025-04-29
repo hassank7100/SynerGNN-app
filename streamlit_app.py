@@ -12,20 +12,22 @@ TOP_N      = 10   # how many combos to list in “rank my inventory”
 # ──────────────────────────────────────────────────────────
 # 1.  Load model + predictor + drug metadata (with caching)
 # ──────────────────────────────────────────────────────────
-@st.cache_resource
+@st.cache_resource(show_spinner="Loading GNN…")
 def load_model():
+    # embeddings you saved earlier
     z = torch.load("node_embeddings.pt", map_location="cpu")
 
-    # ➊ add these two lines
-    with open("drugs.json") as fp:              # ← your mapping file
-        idx2smiles = json.load(fp)              # idx    →  {"name":…, "smiles":…}
+    # load real names + smiles
+    with open("drugs.json") as fp:
+        drug_meta = json.load(fp)           # {int: {"name":..., "smiles":...}}
 
     class LinkPred(torch.nn.Module):
         def forward(self, z, edges):
             u, v = z[edges[0]], z[edges[1]]
             return (u * v).sum(dim=1)
 
-    return z, LinkPred(), idx2smiles           # now defined
+    return z, LinkPred(), drug_meta
+
 
 
     encoder = GCNEncoder(in_dim, hidden, out_dim)
