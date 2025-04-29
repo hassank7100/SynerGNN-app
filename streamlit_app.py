@@ -120,7 +120,7 @@ with tab2:
             # build a red-to-green gradient (RdYlGn reversed = Gn->Rd)
             styler = (
                 top_df.style.background_gradient(
-                    subset=["Predicted Synergy"], cmap="RdYlGn_r", vmin=0, vmax=1
+                    subset=["Predicted Synergy"], cmap="RdYlGn", vmin=0, vmax=1
                 )
                 .format({"Predicted Synergy": "{:.3f}"})
             )
