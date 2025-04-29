@@ -41,7 +41,7 @@ def predict_pair(i, j):
 # ──────────────────────────────────────────────────────────
 st.title("SynerGNN: AI-Driven Prediction of Antibiotic Synergy Against *Klebsiella pneumoniae*")
 
-tab1, tab2 = st.tabs(["🔍 Check one pair", "📋 Rank my inventory"])
+tab1, tab2 = st.tabs(["Check one pair", "Rank my inventory"])
 
 # ----- Pair checker UI -----
 with tab1:
@@ -125,7 +125,7 @@ with tab2:
                 .format({"Predicted Synergy": "{:.3f}"})
             )
             
-            st.write(f"### 🏆 Top {TOP_N} predicted synergistic pairs")
+            st.write(f"### Top {TOP_N} predicted synergistic pairs")
             st.dataframe(styler, use_container_width=True)
 
 
