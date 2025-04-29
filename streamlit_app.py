@@ -66,19 +66,26 @@ with tab1:
     )
 
     if st.button("Predict synergy →", key="pair-btn"):
-        prob = predict_pair(int(choiceA), int(choiceB))
-        nameA = drug_meta[choiceA]["name"]
-        nameB = drug_meta[choiceB]["name"]
+        # --- prediction ---
+        idxA, idxB = int(choiceA), int(choiceB)
+        prob  = predict_pair(idxA, idxB)
+        nameA = drug_meta[idxA]["name"]
+        nameB = drug_meta[idxB]["name"]
     
-        delta = prob - 0.5          # how far from neutral 0.50
+        # difference from the neutral 0.50 threshold
+        delta_val   = prob - 0.50
+        verdict_txt = "Synergistic ✅" if prob > 0.50 else "Not synergistic ❌"
+    
+        # put BOTH pieces in the delta line
+        delta_str = f"{delta_val:+.3f} • {verdict_txt}"
     
         st.metric(
-            label=f"{nameA} + {nameB}",
-            value=f"{prob:.3f}",
-            delta=f"{delta:+.3f}",
-            help=">0.5 or greater suggests likely synergy"
+            label = f"{nameA}  +  {nameB}",
+            value = f"{prob:.3f}",
+            delta = delta_str,           # coloured red or green automatically
+            help  = "Green ↑ = >0.50 (likely synergy) • Red ↓ = <0.50"
         )
-        st.caption("Prediction: " + ("Synergistic ✅" if prob > 0.5 else "Not synergistic ❌"))
+
 
 
 # ---- Inventory ranker
