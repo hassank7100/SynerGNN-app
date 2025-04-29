@@ -116,32 +116,13 @@ with tab2:
         if st.button(f"Rank top {TOP_N} pairs →", key="rank-btn"):
             combos  = list(itertools.combinations(inventory, 2))
             probs   = [predict_pair(i, j) for i, j in combos]
-            rows = [{
+            rows    = [{
                 "Drug A": drug_meta[i]["name"],
                 "Drug B": drug_meta[j]["name"],
                 "Predicted Synergy": round(p, 3)
             } for (i, j), p in zip(combos, probs)]
-            
-            df = pd.DataFrame(rows).sort_values("Predicted Synergy", ascending=False).reset_index(drop=True)
-            top_pairs = df.head(TOP_N)
-            
-            st.write(f"### 🏆 Top {TOP_N} Predicted Synergistic Pairs")
-            
-            # Add label arrows based on synergy probability
-            def label_arrow(prob):
-                return "🔼 Likely Synergy" if prob > 0.5 else "🔽 Unlikely Synergy"
-            
-            top_pairs["Prediction"] = top_pairs["Predicted Synergy"].apply(label_arrow)
-            
-            # Prettier table with green/red gradient
-            st.dataframe(
-                top_pairs.style.background_gradient(
-                    subset=["Predicted Synergy"], cmap="RdYlGn"  # RED ➔ YELLOW ➔ GREEN
-                ).format({
-                    "Predicted Synergy": "{:.3f}"
-                }),
-                use_container_width=True
-            )
-
+            df = pd.DataFrame(rows).sort_values("Predicted Synergy", ascending=False)
+            st.write(f"### Top {TOP_N} predicted synergistic pairs")
+            st.dataframe(df.head(TOP_N), use_container_width=True)
 
 st.caption("Model trained on real CRKP synergy data • probabilities >0.5 suggest likely synergy")
