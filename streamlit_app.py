@@ -69,8 +69,8 @@ with tab1:
         # --- prediction ---
         idxA, idxB = int(choiceA), int(choiceB)
         prob  = predict_pair(idxA, idxB)
-        nameA = drug_meta[idxA]["name"]
-        nameB = drug_meta[idxB]["name"]
+        nameA = drug_meta[str(idxA)]["name"]
+        nameB = drug_meta[str(idxB)]["name"]
     
         # difference from the neutral 0.50 threshold
         delta_val   = prob - 0.50
