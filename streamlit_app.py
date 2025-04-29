@@ -66,7 +66,7 @@ with tab1:
     )
 
     if st.button("Predict synergy →", key="pair-btn"):
-        prob = predict_pair(choiceA, choiceB)
+        prob = predict_pair(int(choiceA), int(choiceB))
         nameA = drug_meta[choiceA]["name"]
         nameB = drug_meta[choiceB]["name"]
     
@@ -95,7 +95,7 @@ with tab2:
     else:
         if st.button(f"Rank top {TOP_N} pairs →", key="rank-btn"):
             combos  = list(itertools.combinations(inventory, 2))
-            probs   = [predict_pair(i, j) for i, j in combos]
+            probs = [predict_pair(int(i), int(j)) for i, j in combos]
             rows    = [{
                 "Drug A": drug_meta[i]["name"],
                 "Drug B": drug_meta[j]["name"],
