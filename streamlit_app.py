@@ -76,7 +76,7 @@ with tab1:
             label=f"{nameA} + {nameB}",
             value=f"{prob:.3f}",
             delta=f"{delta:+.3f}",
-            help="> 0.5 suggests likely synergy"
+            help=" >0.5 suggests likely synergy"
         )
         st.caption("Prediction: " + ("Synergistic ✅" if prob > 0.5 else "Not synergistic ❌"))
 
