@@ -13,24 +13,14 @@ TOP_N      = 10   # how many combos to list in “rank my inventory”
 # ──────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner="Loading GNN…")
 def load_model():
-    ckpt = torch.load(CHECKPOINT, map_location="cpu")
-    in_dim  = ckpt["feature_dim"]
-    hidden  = 64
-    out_dim = 32
-
-    class GCNEncoder(torch.nn.Module):
-        def __init__(self, in_channels, hidden_channels, out_channels):
-            super().__init__()
-            self.conv1 = GCNConv(in_channels, hidden_channels)
-            self.conv2 = GCNConv(hidden_channels, out_channels)
-        def forward(self, x, edge_index):
-            x = F.relu(self.conv1(x, edge_index))
-            return self.conv2(x, edge_index)
-
+    z = torch.load("node_embeddings.pt")          # ← embeddings ready
+    # you still need the predictor ONLY for new retrains; not needed for dot-product
     class LinkPred(torch.nn.Module):
         def forward(self, z, edges):
             u, v = z[edges[0]], z[edges[1]]
             return (u * v).sum(dim=1)
+    return z, LinkPred(), idx2smiles
+
 
     encoder = GCNEncoder(in_dim, hidden, out_dim)
     decoder = LinkPred()
