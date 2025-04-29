@@ -28,30 +28,10 @@ def load_model():
 
     return z, LinkPred(), drug_meta
 
-@st.cache_resource
-def load_drug_meta():
-    with open(METADATA) as fp:
-        return {int(k): v for k, v in json.load(fp).items()}
 
 embeddings, predictor, idx2smiles = load_model()
 drug_meta = load_drug_meta()
 num_drugs = len(drug_meta)
-
-    encoder = GCNEncoder(in_dim, hidden, out_dim)
-    decoder = LinkPred()
-    encoder.load_state_dict(ckpt["model_state_dict"])
-    decoder.load_state_dict(ckpt["predictor_state_dict"])
-    encoder.eval(); decoder.eval()
-
-    # fake graph to compute embeddings once (no gradients needed)
-    num_nodes = len(ckpt["idx_map"])
-    dummy_x   = torch.eye(num_nodes, in_dim) * 0  # placeholder
-    dummy_edge = torch.empty((2, 0), dtype=torch.long)
-
-    with torch.no_grad():
-        z = encoder(dummy_x, dummy_edge)
-
-    return z, decoder, ckpt["idx_map"]
 
 # ──────────────────────────────────────────────────────────
 # 2.  Helper to compute probability for any pair (i,j)
