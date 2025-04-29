@@ -95,11 +95,20 @@ with tab1:
     )
 
     if st.button("Predict synergy →", key="pair-btn"):
-        prob = predict_pair(choiceA, choiceB)
-        nameA = drug_meta[choiceA]["name"]
-        nameB = drug_meta[choiceB]["name"]
-        label = "Synergistic ✅" if prob > 0.5 else "Not synergistic ❌"
-        st.metric(f"{nameA} + {nameB}", f"{prob:.3f}", label)
+    prob = predict_pair(choiceA, choiceB)
+    nameA = drug_meta[choiceA]["name"]
+    nameB = drug_meta[choiceB]["name"]
+
+    delta = prob - 0.5          # how far from neutral 0.50
+
+    st.metric(
+        label=f"{nameA} + {nameB}",
+        value=f"{prob:.3f}",
+        delta=f"{delta:+.3f}",
+        help="> 0.5 suggests likely synergy"
+    )
+st.caption("Prediction: " + ("Synergistic ✅" if prob > 0.5 else "Not synergistic ❌"))
+
 
 # ---- Inventory ranker
 with tab2:
@@ -123,6 +132,23 @@ with tab2:
             } for (i, j), p in zip(combos, probs)]
             df = pd.DataFrame(rows).sort_values("Predicted Synergy", ascending=False)
             st.write(f"### Top {TOP_N} predicted synergistic pairs")
-            st.dataframe(df.head(TOP_N), use_container_width=True)
+            df_sorted = pd.DataFrame(rows).sort_values(
+                "Predicted Synergy", ascending=False, ignore_index=True
+            )
+            
+            # choose TOP_N rows
+            top_df = df_sorted.head(TOP_N)
+            
+            # build a red-to-green gradient (RdYlGn reversed = Gn->Rd)
+            styler = (
+                top_df.style.background_gradient(
+                    subset=["Predicted Synergy"], cmap="RdYlGn_r", vmin=0, vmax=1
+                )
+                .format({"Predicted Synergy": "{:.3f}"})
+            )
+            
+            st.write(f"### 🏆 Top {TOP_N} predicted synergistic pairs")
+            st.dataframe(styler, use_container_width=True)
+
 
 st.caption("Model trained on real CRKP synergy data • probabilities >0.5 suggest likely synergy")
