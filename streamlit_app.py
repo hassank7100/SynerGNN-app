@@ -1,25 +1,20 @@
 # streamlit_app.py
 import json
 import streamlit as st
-import torch, itertools, json, pandas as pd
+import torch, itertools, pandas as pd
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 
+# Constants
 CHECKPOINT = "gnn_synergy_model.pth"
-METADATA   = "drugs.json"
-TOP_N      = 10   # how many combos to list in “rank my inventory”
+TOP_N = 10
 
-# ──────────────────────────────────────────────────────────
-# 1.  Load model + predictor + drug metadata (with caching)
-# ──────────────────────────────────────────────────────────
+# Load model and metadata
 @st.cache_resource(show_spinner="Loading GNN…")
 def load_model():
-    # embeddings you saved earlier
     z = torch.load("node_embeddings.pt", map_location="cpu")
-
-    # load real names + smiles
     with open("drugs.json") as fp:
-        drug_meta = json.load(fp)           # {int: {"name":..., "smiles":...}}
+        drug_meta = json.load(fp)
 
     class LinkPred(torch.nn.Module):
         def forward(self, z, edges):
@@ -27,7 +22,6 @@ def load_model():
             return (u * v).sum(dim=1)
 
     return z, LinkPred(), drug_meta
-
 
 embeddings, predictor, drug_meta = load_model()
 num_drugs = len(drug_meta)
