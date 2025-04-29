@@ -39,7 +39,7 @@ def predict_pair(i, j):
 # ──────────────────────────────────────────────────────────
 # 3.  Streamlit UI
 # ──────────────────────────────────────────────────────────
-st.title("SynerGNN – predict antibiotic synergy for *Klebsiella pneumoniae*")
+st.title("SynerGNN: AI-Driven Prediction of Antibiotic Synergy Against *Klebsiella pneumoniae*")
 
 tab1, tab2 = st.tabs(["🔍 Check one pair", "📋 Rank my inventory"])
 
