@@ -12,7 +12,6 @@ TOP_N      = 10   # how many combos to list in “rank my inventory”
 # ──────────────────────────────────────────────────────────
 # 1.  Load model + predictor + drug metadata (with caching)
 # ──────────────────────────────────────────────────────────
-@st.cache_resource(show_spinner="Loading GNN…")
 @st.cache_resource
 def load_model():
     z = torch.load("node_embeddings.pt", map_location="cpu")
