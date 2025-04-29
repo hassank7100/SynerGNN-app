@@ -41,7 +41,7 @@ def predict_pair(i, j):
 # ──────────────────────────────────────────────────────────
 st.title("SynerGNN: AI-Driven Prediction of Antibiotic Synergy Against *Klebsiella pneumoniae*")
 
-tab1, tab2 = st.tabs(["Check one Pair", "Rank my Inventory"])
+tab1, tab2 = st.tabs(["Check One Pair", "Rank My Inventory"])
 
 # ----- Pair checker UI -----
 with tab1:
