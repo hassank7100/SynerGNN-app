@@ -13,7 +13,7 @@ TOP_N = 10
 @st.cache_resource(show_spinner="Loading GNN…")
 def load_model():
     z = torch.load("node_embeddings_combined.pt", map_location="cpu")
-    with open("drugs.json_combined") as fp:
+    with open("drugs_combined.json") as fp:
         drug_meta = json.load(fp)
 
     class LinkPred(torch.nn.Module):
