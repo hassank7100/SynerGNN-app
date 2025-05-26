@@ -6,14 +6,14 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 
 # Constants
-CHECKPOINT = "gnn_synergy_model.pth"
+CHECKPOINT = "gnn_synergy_model_combined.pth"
 TOP_N = 10
 
 # Load model and metadata
 @st.cache_resource(show_spinner="Loading GNN…")
 def load_model():
-    z = torch.load("node_embeddings.pt", map_location="cpu")
-    with open("drugs.json") as fp:
+    z = torch.load("node_embeddings_combined.pt", map_location="cpu")
+    with open("drugs.json_combined") as fp:
         drug_meta = json.load(fp)
 
     class LinkPred(torch.nn.Module):
